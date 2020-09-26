@@ -165,6 +165,18 @@ class BigQueryCompiler(SQLCompiler):
             dialect, statement, column_keys, inline, **kwargs
         )
 
+    def visit_array(self, element, **kw):
+        return "[%s]" % self.visit_clauselist(element, **kw)
+
+    def visit_select(self, *args, **kwargs):
+        """
+        Use labels for every column.
+        This ensures that fields won't contain duplicate names
+        """
+
+        args[0].use_labels = True
+        return super(BigQueryCompiler, self).visit_select(*args, **kwargs)
+
     def visit_column(
         self, column, add_to_result_map=None, include_table=True, **kwargs
     ):

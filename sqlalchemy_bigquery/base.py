@@ -221,7 +221,7 @@ class BigQueryCompiler(_struct.SQLCompiler, SQLCompiler):
         #   SELECT `foo_objects`
         #   FROM unnest(`foo`.`objects`) AS `foo_objects`
         #
-        # But BigQuery diesn't understand the `foo` reference unless
+        # But BigQuery doesn't understand the `foo` reference unless
         # we add as reference to `foo` in the FROM:
         #
         #   SELECT foo_objects
@@ -323,6 +323,9 @@ class BigQueryCompiler(_struct.SQLCompiler, SQLCompiler):
         if within_group_by:
             kwargs["render_label_as_label"] = args[0]
         return super(BigQueryCompiler, self).visit_label(*args, **kwargs)
+
+    def visit_array(self, element, **kw):
+        return f"[{self.visit_clauselist(element, **kw)}]"
 
     def group_by_clause(self, select, **kw):
         return super(BigQueryCompiler, self).group_by_clause(

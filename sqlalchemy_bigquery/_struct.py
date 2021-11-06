@@ -104,7 +104,11 @@ class STRUCT(sqlalchemy.sql.sqltypes.Indexable, sqlalchemy.types.UserDefinedType
 
         def __getattr__(self, name):
             if name.lower() in self.expr.type._STRUCT_byname:
-                return self[name]
+                try:
+                    return self[name]
+                except KeyError:
+                    pass
+            raise AttributeError(name)
 
     comparator_factory = Comparator
 

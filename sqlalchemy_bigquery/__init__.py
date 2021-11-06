@@ -23,6 +23,7 @@ SQLAlchemy dialect for Google BigQuery
 from .version import __version__  # noqa
 
 from .base import BigQueryDialect, dialect  # noqa
+from ._struct import struct
 from ._types import (
     ARRAY,
     BIGNUMERIC,
@@ -62,6 +63,7 @@ __all__ = [
     "STRUCT",
     "TIME",
     "TIMESTAMP",
+    "struct",
 ]
 
 try:

@@ -21,6 +21,8 @@ from typing import Mapping, Tuple
 
 import packaging.version
 import sqlalchemy.sql.default_comparator
+import sqlalchemy.sql.expression
+import sqlalchemy.sql.operators
 import sqlalchemy.sql.sqltypes
 import sqlalchemy.types
 
@@ -146,7 +148,43 @@ sqlalchemy.sql.default_comparator.operator_lookup[
 ] = sqlalchemy.sql.default_comparator.operator_lookup["json_getitem_op"]
 
 
+class struct(
+    sqlalchemy.sql.expression.ClauseList, sqlalchemy.sql.expression.ColumnElement
+):
+    """Create a BigQuery struct literal from a collection of named expressions/clauses."""
+
+    __visit_name__ = "struct"
+
+    def __init__(self, clauses, field=None, **kw):
+        self.type = STRUCT(**{clause.name: clause.type for clause in clauses})
+        self.field = field
+        super().__init__(*clauses, **kw)
+
+    # def _bind_param(self, operator, obj, _assume_scalar=False, type_=None):
+    #     if operator is struct_getitem_op:
+    #         assert type_ is not None
+    #         if isinstance(type_, STRUCT):
+    #             clauses = type_._STRUCT_fields
+    #         else:
+    #             clauses = (type_,)
+    #         return struct(clauses, field=obj)
+    #     raise NotImplementedError()
+
+    def self_group(self, against=None):
+        return self
+        # if not self.field and against in (struct_getitem_op,):
+        #     return sqlalchemy.sql.expression.Grouping(self)
+        # return self
+
+
 class SQLCompiler:
     def visit_struct_getitem_op_binary(self, binary, operator_, **kw):
         left = self.process(binary.left, **kw)
         return f"{left}.{binary.right.value}"
+
+    def visit_struct(self, element, within_columns_clause=True, **kw):
+        if element.field:
+            return self.preparer.quote_column(element.field)
+        kw["within_columns_clause"] = True
+        values = self.visit_clauselist(element, **kw)
+        return f"struct({values})"

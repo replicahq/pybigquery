@@ -629,6 +629,10 @@ class BigQueryDDLCompiler(DDLCompiler):
         bq_opts = table.dialect_options["bigquery"]
         opts = []
         indices = ""
+        print("HEY!!!!")
+        print("bq_opts", bq_opts)
+        print(table)
+        breakpoint()
 
         if "clustering_fields" in bq_opts:
             indices = f'CLUSTER BY {",".join(bq_opts.get("clustering_fields"))}'

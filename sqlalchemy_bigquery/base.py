@@ -628,6 +628,10 @@ class BigQueryDDLCompiler(DDLCompiler):
     def post_create_table(self, table):
         bq_opts = table.dialect_options["bigquery"]
         opts = []
+        indices = ""
+
+        if "clustering_fields" in bq_opts:
+            indices = f'CLUSTER BY {",".join(bq_opts.get("clustering_fields"))}'
 
         if ("description" in bq_opts) or table.comment:
             description = process_string_literal(
@@ -643,9 +647,9 @@ class BigQueryDDLCompiler(DDLCompiler):
             )
 
         if opts:
-            return "\nOPTIONS({})".format(", ".join(opts))
+            return indices + "\nOPTIONS({})".format(", ".join(opts))
 
-        return ""
+        return indices
 
     def visit_set_table_comment(self, create):
         table_name = self.preparer.format_table(create.element)

@@ -632,7 +632,7 @@ class BigQueryDDLCompiler(DDLCompiler):
         indices = ""
 
         if "partition_field" in bq_opts:
-            indices += f'\nPARTITION BY {",".join(bq_opts.get("partition_field"))}'
+            indices += f'\nPARTITION BY {bq_opts.get("partition_field")}'
 
         if "require_partition_filter" in bq_opts:
             opts.append(

@@ -632,7 +632,7 @@ class BigQueryDDLCompiler(DDLCompiler):
         indices = ""
 
         if "partition_field" in bq_opts:
-            indices = f'\nPARTITION BY {",".join(bq_opts.get("partition_field"))}'
+            indices += f'\nPARTITION BY {",".join(bq_opts.get("partition_field"))}'
 
         if "require_partition_filter" in bq_opts:
             opts.append(
@@ -640,7 +640,7 @@ class BigQueryDDLCompiler(DDLCompiler):
             )
 
         if "clustering_fields" in bq_opts:
-            indices = f'\nCLUSTER BY {",".join(bq_opts.get("clustering_fields"))}'
+            indices += f'\nCLUSTER BY {",".join(bq_opts.get("clustering_fields"))}'
 
         if ("description" in bq_opts) or table.comment:
             description = process_string_literal(

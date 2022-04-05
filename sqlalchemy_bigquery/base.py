@@ -76,7 +76,8 @@ class BigQueryIdentifierPreparer(IdentifierPreparer):
 
     def __init__(self, dialect):
         super(BigQueryIdentifierPreparer, self).__init__(
-            dialect, initial_quote="`",
+            dialect,
+            initial_quote="`",
         )
 
     def quote_column(self, value):
@@ -630,6 +631,14 @@ class BigQueryDDLCompiler(DDLCompiler):
         opts = []
         indices = ""
 
+        if "partition_field" in bq_opts:
+            indices = f'\nPARTITION BY {",".join(bq_opts.get("partition_field"))}'
+
+        if "require_partition_filter" in bq_opts:
+            opts.append(
+                f"require_partition_filter={str(bq_opts.get('require_partition_filter')).lower()}"
+            )
+
         if "clustering_fields" in bq_opts:
             indices = f'\nCLUSTER BY {",".join(bq_opts.get("clustering_fields"))}'
 
@@ -682,8 +691,7 @@ class BQBinary(sqlalchemy.sql.sqltypes._Binary):
 
 
 class BQClassTaggedStr(sqlalchemy.sql.type_api.TypeEngine):
-    """Type that can get literals via str
-    """
+    """Type that can get literals via str"""
 
     @staticmethod
     def process_literal_as_class_tagged_str(value):
@@ -694,8 +702,7 @@ class BQClassTaggedStr(sqlalchemy.sql.type_api.TypeEngine):
 
 
 class BQTimestamp(sqlalchemy.sql.type_api.TypeEngine):
-    """Type that can get literals via str
-    """
+    """Type that can get literals via str"""
 
     @staticmethod
     def process_timestamp_literal(value):

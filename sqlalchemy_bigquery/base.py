@@ -633,11 +633,15 @@ class BigQueryDDLCompiler(DDLCompiler):
 
         if "partition_field" in bq_opts:
             indices += f'\nPARTITION BY {bq_opts.get("partition_field")}'
+            opts.append("partition_expiration_days=NULL")
 
         if "require_partition_filter" in bq_opts:
             opts.append(
                 f"require_partition_filter={str(bq_opts.get('require_partition_filter')).lower()}"
             )
+
+        if "partition_expiration_days" in bq_opts:
+            opts.append(f"partition_expiration_days={bq_opts.get('partition_expiration_days')}")
 
         if "clustering_fields" in bq_opts:
             indices += f'\nCLUSTER BY {",".join(bq_opts.get("clustering_fields"))}'

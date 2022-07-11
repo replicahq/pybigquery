@@ -345,16 +345,19 @@ class BigQueryCompiler(_struct.SQLCompiler, SQLCompiler):
 
     __sqlalchemy_version_info = tuple(map(int, sqlalchemy.__version__.split(".")))
 
-    __expandng_text = (
+    __expanding_text = (
         "EXPANDING" if __sqlalchemy_version_info < (1, 4) else "POSTCOMPILE"
     )
 
+    # https://github.com/sqlalchemy/sqlalchemy/commit/f79df12bd6d99b8f6f09d4bf07722638c4b4c159
+    __expanding_conflict = "" if __sqlalchemy_version_info < (1, 4, 27) else "__"
+
     __in_expanding_bind = _helpers.substitute_string_re_method(
-        fr"""
+        rf"""
         \sIN\s\(                     # ' IN ('
         (
-        \[                           # Expanding placeholder
-        {__expandng_text}            #   e.g. [EXPANDING_foo_1]
+        {__expanding_conflict}\[     # Expanding placeholder
+        {__expanding_text}           #   e.g. [EXPANDING_foo_1]
         _[^\]]+                      #
         \]
         (:[A-Z0-9]+)?                # type marker (e.g. ':INT64'
@@ -435,7 +438,9 @@ class BigQueryCompiler(_struct.SQLCompiler, SQLCompiler):
 
     __placeholder = re.compile(r"%\(([^\]:]+)(:[^\]:]+)?\)s$").match
 
-    __expanded_param = re.compile(fr"\(\[" fr"{__expandng_text}" fr"_[^\]]+\]\)$").match
+    __expanded_param = re.compile(
+        rf"\({__expanding_conflict}\[" rf"{__expanding_text}" rf"_[^\]]+\]\)$"
+    ).match
 
     __remove_type_parameter = _helpers.substitute_string_re_method(
         r"""
@@ -525,9 +530,10 @@ class BigQueryCompiler(_struct.SQLCompiler, SQLCompiler):
 
         assert_(param != "%s", f"Unexpected param: {param}")
 
-        if bindparam.expanding:
+        if bindparam.expanding:  # pragma: NO COVER
             assert_(self.__expanded_param(param), f"Unexpected param: {param}")
-            param = param.replace(")", f":{bq_type})")
+            if self.__sqlalchemy_version_info < (1, 4, 27):
+                param = param.replace(")", f":{bq_type})")
 
         else:
             m = self.__placeholder(param)
@@ -771,6 +777,7 @@ class BigQueryDialect(DefaultDialect):
         credentials_path=None,
         location=None,
         credentials_info=None,
+        credentials_base64=None,
         list_tables_page_size=1000,
         *args,
         **kwargs,
@@ -779,6 +786,7 @@ class BigQueryDialect(DefaultDialect):
         self.arraysize = arraysize
         self.credentials_path = credentials_path
         self.credentials_info = credentials_info
+        self.credentials_base64 = credentials_base64
         self.location = location
         self.dataset_id = None
         self.list_tables_page_size = list_tables_page_size
@@ -809,6 +817,7 @@ class BigQueryDialect(DefaultDialect):
             dataset_id,
             arraysize,
             credentials_path,
+            credentials_base64,
             default_query_job_config,
             list_tables_page_size,
         ) = parse_url(url)
@@ -817,6 +826,7 @@ class BigQueryDialect(DefaultDialect):
         self.list_tables_page_size = list_tables_page_size or self.list_tables_page_size
         self.location = location or self.location
         self.credentials_path = credentials_path or self.credentials_path
+        self.credentials_base64 = credentials_base64 or self.credentials_base64
         self.dataset_id = dataset_id
         self._add_default_dataset_to_job_config(
             default_query_job_config, project_id, dataset_id
@@ -824,6 +834,7 @@ class BigQueryDialect(DefaultDialect):
         client = _helpers.create_bigquery_client(
             credentials_path=self.credentials_path,
             credentials_info=self.credentials_info,
+            credentials_base64=self.credentials_base64,
             project_id=project_id,
             location=self.location,
             default_query_job_config=default_query_job_config,

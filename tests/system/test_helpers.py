@@ -4,6 +4,7 @@
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT.
 
+import base64
 import os
 import json
 
@@ -30,6 +31,12 @@ def credentials_info(credentials_path):
         return json.load(credentials_file)
 
 
+@pytest.fixture
+def credentials_base64(credentials_path):
+    with open(credentials_path) as credentials_file:
+        return base64.b64encode(credentials_file.read().encode()).decode()
+
+
 def test_create_bigquery_client_with_credentials_path(
     module_under_test, credentials_path, credentials_info
 ):
@@ -47,7 +54,8 @@ def test_create_bigquery_client_with_credentials_path_respects_project(
     https://github.com/googleapis/python-bigquery-sqlalchemy/issues/48
     """
     bqclient = module_under_test.create_bigquery_client(
-        credentials_path=credentials_path, project_id="connection-url-project",
+        credentials_path=credentials_path,
+        project_id="connection-url-project",
     )
     assert bqclient.project == "connection-url-project"
 
@@ -69,6 +77,30 @@ def test_create_bigquery_client_with_credentials_info_respects_project(
     https://github.com/googleapis/python-bigquery-sqlalchemy/issues/48
     """
     bqclient = module_under_test.create_bigquery_client(
-        credentials_info=credentials_info, project_id="connection-url-project",
+        credentials_info=credentials_info,
+        project_id="connection-url-project",
+    )
+    assert bqclient.project == "connection-url-project"
+
+
+def test_create_bigquery_client_with_credentials_base64(
+    module_under_test, credentials_base64, credentials_info
+):
+    bqclient = module_under_test.create_bigquery_client(
+        credentials_base64=credentials_base64
+    )
+    assert bqclient.project == credentials_info["project_id"]
+
+
+def test_create_bigquery_client_with_credentials_base64_respects_project(
+    module_under_test, credentials_base64
+):
+    """Test that project_id is used, even when there is a default project.
+
+    https://github.com/googleapis/python-bigquery-sqlalchemy/issues/48
+    """
+    bqclient = module_under_test.create_bigquery_client(
+        credentials_base64=credentials_base64,
+        project_id="connection-url-project",
     )
     assert bqclient.project == "connection-url-project"
